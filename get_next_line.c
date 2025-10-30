@@ -43,52 +43,83 @@ occurred */
 // 	}
 // 	return (dest);
 // }
-// static char	*ft_realloc(size_t s_len)
+// static size_t ft_str_len(char *str)
 // {
-// 	char	*ptr;
+// 	size_t	len;
 
-// 	ptr = malloc(s_len * sizeof(char));
-// 	if (ptr == NULL)
-// 		return (NULL);
-// 	return (ptr);
+// 	len = 0;
+// 	while(str[len] != '\n' || str[len])
+// 	{
+// 		len++;
+// 	}
+// 	if (str[len] == '\n')
+// 		return (len + 1);
+// 	return (len);
 // }
 
-static size_t ft_def_len(char *str)
+static void	*ft_memcpy(void *dest, const void *src, size_t n)
 {
-	size_t	len;
+	const unsigned char	*p_src;
+	unsigned char		*p_dest;
 
-	len = 0;
-	while(str[len] != '\n')
+	p_src = src;
+	p_dest = dest;
+	while (n > 0)
 	{
-		len++;
+		*p_dest = *p_src;
+		p_dest++;
+		p_src++;
+		n--;
 	}
-	if (str[len] == '\n')
-		return (len + 1);
-	return (len);
+	return (dest);
 }
+static char	*ft_realloc(char *str, size_t str_len ,size_t size)
+{
+	char *new_str;
 
+	new_str = malloc(size * sizeof(char));
+	if (new_str == NULL)
+		return (NULL);
+	ft_memcpy(new_str, str, str_len);
+	free(str);
+	return (new_str);
+}
 char	*get_next_line(int fd)
 {
-	static char		*buf;
+	static char		buf[BUFFER_SIZE];
 	static char		*str_to_return;
 	// static size_t	str_to_return_len;
 	static size_t	line_to_read;
 	int				i;
 
+
+	*buf = '1';
+	buf[3] = '5';
+	*(buf + 6) = 'f';
+
+	buf++;
+	buf--;
+	buf = "asdasd";
+
+	sizeof(buf) == BUFFER_SIZE;
+	sizeof(ptr) == 8;
+
+
+	// hello\n123\n456hdfkjsdkjlhfklshefrkwheklrhwkluehrfklwuh
+	// hello\n
+	// 123
+
+
 	if (fd == -1)
 		return (NULL);
 	printf("buf sting = %s\n",buf );
-	if (buf)
+	if (*buf != "")
 	{
 		printf("im not empty!!!!\n");
 		printf("In buf - %s\n", buf);
 	}
 	else
 	{
-		printf("im here\n");
-		buf = malloc(BUFFER_SIZE * sizeof(char));
-		if (buf == NULL)
-			return (NULL);
 		str_to_return = malloc(BUFFER_SIZE * sizeof(char));
 		if (str_to_return == NULL)
 			return (NULL);
@@ -112,8 +143,8 @@ char	*get_next_line(int fd)
 	if (*buf == '\n')
 		str_to_return[i] = '\n';
 	return (str_to_return);
-
-
+ 
+ 
 
 
 	// printf("read line - %zu, line - %s\n", read_line, str);
