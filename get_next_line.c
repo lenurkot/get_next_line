@@ -6,7 +6,7 @@
 /*   By: ekotova <ekotova@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/26 16:38:57 by ekotova           #+#    #+#             */
-/*   Updated: 2025/10/30 14:05:50 by ekotova          ###   ########.fr       */
+/*   Updated: 2025/10/30 16:02:09 by ekotova          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,29 +27,95 @@ NULL: there is nothing else to read, or an error
 occurred */
 
 // static	ft_read(void)
+// static void	*ft_memcpy(void *dest, const void *src, size_t n)
+// {
+// 	const unsigned char	*p_src;
+// 	unsigned char		*p_dest;
+
+// 	p_src = src;
+// 	p_dest = dest;
+// 	while (n > 0)
+// 	{
+// 		*p_dest = *p_src;
+// 		p_dest++;
+// 		p_src++;
+// 		n--;
+// 	}
+// 	return (dest);
+// }
+// static char	*ft_realloc(size_t s_len)
+// {
+// 	char	*ptr;
+
+// 	ptr = malloc(s_len * sizeof(char));
+// 	if (ptr == NULL)
+// 		return (NULL);
+// 	return (ptr);
+// }
+
+static size_t ft_def_len(char *str)
+{
+	size_t	len;
+
+	len = 0;
+	while(str[len] != '\n')
+	{
+		len++;
+	}
+	if (str[len] == '\n')
+		return (len + 1);
+	return (len);
+}
 
 char	*get_next_line(int fd)
 {
-	static char		buf[BUFFER_SIZE];
-	char			*str;
-	static size_t	read_line;
+	static char		*buf;
+	static char		*str_to_return;
+	// static size_t	str_to_return_len;
+	static size_t	line_to_read;
 	int				i;
 
-	i = 0;
 	if (fd == -1)
 		return (NULL);
-	str = malloc(BUFFER_SIZE + 1);
-	if (str == NULL)
-		return (NULL);
-	read_line = read(fd + i, buf, BUFFER_SIZE - 1);
-	buf[read_line] = '\n';
-	while (buf[i] != '\n')
+	printf("buf sting = %s\n",buf );
+	if (buf)
 	{
-		str[i] = buf[i];
+		printf("im not empty!!!!\n");
+		printf("In buf - %s\n", buf);
+	}
+	else
+	{
+		printf("im here\n");
+		buf = malloc(BUFFER_SIZE * sizeof(char));
+		if (buf == NULL)
+			return (NULL);
+		str_to_return = malloc(BUFFER_SIZE * sizeof(char));
+		if (str_to_return == NULL)
+			return (NULL);
+		printf("I allocarte mem\n");
+	}
+	i = 0;
+	line_to_read = read(fd + i, buf, BUFFER_SIZE);
+	if (line_to_read == -1)
+		return (NULL);
+	// str_to_return_len = ft_def_len(buf);
+	// printf("line_to_read - %zu buf_size = %d str_to_return_len - %zu\n", line_to_read, BUFFER_SIZE, str_to_return_len);
+
+	while (i <= BUFFER_SIZE && *buf != '\n')
+	{
+		// printf("*buf = %c\n", *buf);
+		str_to_return[i] = *buf;
+		// printf("*str_to_return[i] = %c\n", str_to_return[i]);
+		buf++;
 		i++;
 	}
-	if (buf[i] == '\n')
-		str[i] = '\n';
+	if (*buf == '\n')
+		str_to_return[i] = '\n';
+	return (str_to_return);
+
+
+
+
 	// printf("read line - %zu, line - %s\n", read_line, str);
 	// printf("i m gonna crush\n");
 	// read_line = read(fd, buf, BUFFER_SIZE - 1);
@@ -70,7 +136,7 @@ char	*get_next_line(int fd)
 	// 	buf[read_line] = '\n';
 	// 	read_line = read(fd, buf, BUFFER_SIZE - 1);
 	// }
-	return (str);
+	// return (str_to_ret);
 }
 
 int	main(int argc, char *argv[])
@@ -85,9 +151,9 @@ int	main(int argc, char *argv[])
 	line_to_read = get_next_line(fd);
 	// line_to_read = get_next_line(fd);
 	// close(fd);
-	printf("stirng from file - %s\n", line_to_read);
+	//printf("stirng from file - %s\n", line_to_read);
 	line_to_read = get_next_line(fd);
-	printf("stirng from file - %s\n", line_to_read);
+	// printf("stirng from file - %s\n", line_to_read);
 	// line_to_read = get_next_line(fd);
 	// printf("stirng from file - %s\n", line_to_read);
 	return (0);
