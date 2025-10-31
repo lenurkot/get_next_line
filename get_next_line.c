@@ -26,36 +26,15 @@ device is unspecified. */
 NULL: there is nothing else to read, or an error
 occurred */
 
-// static	ft_read(void)
-// static void	*ft_memcpy(void *dest, const void *src, size_t n)
-// {
-// 	const unsigned char	*p_src;
-// 	unsigned char		*p_dest;
+static int ft_str_len(char *str, size_t buf_size_str)
+{
+	int	len;
 
-// 	p_src = src;
-// 	p_dest = dest;
-// 	while (n > 0)
-// 	{
-// 		*p_dest = *p_src;
-// 		p_dest++;
-// 		p_src++;
-// 		n--;
-// 	}
-// 	return (dest);
-// }
-// static size_t ft_str_len(char *str)
-// {
-// 	size_t	len;
-
-// 	len = 0;
-// 	while(str[len] != '\n' || str[len])
-// 	{
-// 		len++;
-// 	}
-// 	if (str[len] == '\n')
-// 		return (len + 1);
-// 	return (len);
-// }
+	len = 0;
+	while(len <= buf_size_str)
+		len++;
+	return (len);
+}
 
 static void	*ft_memcpy(void *dest, const void *src, size_t n)
 {
@@ -73,101 +52,91 @@ static void	*ft_memcpy(void *dest, const void *src, size_t n)
 	}
 	return (dest);
 }
-static char	*ft_realloc(char *str, size_t str_len ,size_t size)
+static char	*ft_realloc(char *str, size_t size, size_t str_to_free_len, char *str_to_free)
 {
 	char *new_str;
 
 	new_str = malloc(size * sizeof(char));
 	if (new_str == NULL)
 		return (NULL);
-	ft_memcpy(new_str, str, str_len);
-	free(str);
+	ft_memcpy(new_str, str, size);
+	free(str_to_free);
 	return (new_str);
+}
+
+static int is_new_line(char *str, size_t buf_size)
+{
+	int	i;
+
+	i = 0;
+	while(i <= buf_size)
+	{
+		if (str[i] == '\n')
+			return (i + 1);
+		i++;
+	}
+	return (0);
 }
 char	*get_next_line(int fd)
 {
+	static int		read_result;
 	static char		buf[BUFFER_SIZE];
+	static char		*p_to_buf;
 	static char		*str_to_return;
-	// static size_t	str_to_return_len;
-	static size_t	line_to_read;
-	int				i;
+	static size_t	str_to_return_len = 0;
+	static size_t	str_to_read_copied;
+	static size_t	str_to_read_buf;
+	static int		buf_size;
 
 
-	*buf = '1';
-	buf[3] = '5';
-	*(buf + 6) = 'f';
-
-	buf++;
-	buf--;
-	buf = "asdasd";
-
-	sizeof(buf) == BUFFER_SIZE;
-	sizeof(ptr) == 8;
-
-
-	// hello\n123\n456hdfkjsdkjlhfklshefrkwheklrhwkluehrfklwuh
-	// hello\n
-	// 123
-
-
+	
 	if (fd == -1)
 		return (NULL);
-	printf("buf sting = %s\n",buf );
-	if (*buf != "")
+	buf_size = BUFFER_SIZE;
+	if (str_to_return_len == 0)
 	{
-		printf("im not empty!!!!\n");
-		printf("In buf - %s\n", buf);
+		read_result = read(fd, buf, BUFFER_SIZE);
+		if (read_result == -1)
+			return (NULL);
+		p_to_buf = buf;
+	}
+
+	if (!is_new_line(p_to_buf, BUFFER_SIZE))
+	{
+		str_to_read_copied = BUFFER_SIZE - buf_size;
+		str_to_read_buf = buf_size + BUFFER_SIZE;
+		str_to_return = ft_realloc(p_to_buf, buf_size + BUFFER_SIZE, str_to_return_len, str_to_return);
+		buf_size = BUFFER_SIZE;
+		// printf("str_to_return - %s\n", str_to_return);
+		read_result = read(fd, buf, BUFFER_SIZE);
+		if (read_result == -1)
+			return (NULL);
+		p_to_buf = buf;
 	}
 	else
 	{
-		str_to_return = malloc(BUFFER_SIZE * sizeof(char));
+		str_to_read_buf = BUFFER_SIZE * sizeof(char);
+		str_to_return = malloc(str_to_read_buf);
 		if (str_to_return == NULL)
 			return (NULL);
-		printf("I allocarte mem\n");
 	}
-	i = 0;
-	line_to_read = read(fd + i, buf, BUFFER_SIZE);
-	if (line_to_read == -1)
-		return (NULL);
-	// str_to_return_len = ft_def_len(buf);
-	// printf("line_to_read - %zu buf_size = %d str_to_return_len - %zu\n", line_to_read, BUFFER_SIZE, str_to_return_len);
 
-	while (i <= BUFFER_SIZE && *buf != '\n')
+	if (is_new_line(p_to_buf, buf_size))
 	{
-		// printf("*buf = %c\n", *buf);
-		str_to_return[i] = *buf;
-		// printf("*str_to_return[i] = %c\n", str_to_return[i]);
-		buf++;
-		i++;
+		ft_memcpy(str_to_return, p_to_buf, is_new_line(p_to_buf, BUFFER_SIZE));
+		str_to_return_len = is_new_line(p_to_buf, BUFFER_SIZE);
+		buf_size = buf_size - str_to_return_len;
+		p_to_buf = p_to_buf + str_to_return_len;
+		return (str_to_return);
 	}
-	if (*buf == '\n')
-		str_to_return[i] = '\n';
-	return (str_to_return);
- 
- 
-
-
-	// printf("read line - %zu, line - %s\n", read_line, str);
-	// printf("i m gonna crush\n");
-	// read_line = read(fd, buf, BUFFER_SIZE - 1);
-	// printf("read line - %zu\n", read_line);
-	// printf("you don't see me\n");
-	// buf[read_line] = '\n';
-	// while (buf[i] != '\n' || buf[i])
-	// {
-	// 	printf("i was here\n");
-	// 	str[i] = buf[i];
-	// 	i++;
-	// }
-	// if (buf[i] != '\n')
-	// 	str[i] = '\n';
-	// printf("read line - %zu, line - %s\n", read_line, str);
-	// while (read_line > 0)
-	// {
-	// 	buf[read_line] = '\n';
-	// 	read_line = read(fd, buf, BUFFER_SIZE - 1);
-	// }
-	// return (str_to_ret);
+	else
+	{
+		str_to_return_len = ft_str_len(str_to_return, BUFFER_SIZE - str_to_read_copied);
+		ft_memcpy(str_to_return + str_to_return_len, buf, BUFFER_SIZE);
+		printf("str_to_return - %s\n", str_to_return);
+		get_next_line(fd);
+	}
+	return (NULL);
 }
 
 int	main(int argc, char *argv[])
@@ -177,15 +146,12 @@ int	main(int argc, char *argv[])
 	int		fd;
 
 	name_file = argv[argc - 1];
-	// printf("name file - %s\n, argc = %d\n", argv[argc - 1], argc);
 	fd = open(name_file, O_RDONLY);
 	line_to_read = get_next_line(fd);
-	// line_to_read = get_next_line(fd);
-	// close(fd);
-	//printf("stirng from file - %s\n", line_to_read);
+	printf("stirng from file - %s\n", line_to_read);
 	line_to_read = get_next_line(fd);
-	// printf("stirng from file - %s\n", line_to_read);
-	// line_to_read = get_next_line(fd);
-	// printf("stirng from file - %s\n", line_to_read);
+	printf("stirng from file - %s\n", line_to_read);
+	line_to_read = get_next_line(fd);
+	printf("stirng from file - %s\n", line_to_read);
 	return (0);
 }
