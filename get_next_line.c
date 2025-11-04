@@ -6,7 +6,7 @@
 /*   By: ekotova <ekotova@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/26 16:38:57 by ekotova           #+#    #+#             */
-/*   Updated: 2025/10/30 16:02:09 by ekotova          ###   ########.fr       */
+/*   Updated: 2025/11/04 12:11:24 by ekotova          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ static void	*ft_memcpy(void *dest, const void *src, size_t n)
 	}
 	return (dest);
 }
-static char	*ft_realloc(char *str, size_t size, size_t str_to_free_len, char *str_to_free)
+static char	*ft_realloc(char *str, size_t size, size_t str_to_return_len, char *str_to_free)
 {
 	char *new_str;
 
@@ -69,7 +69,7 @@ static int is_new_line(char *str, size_t buf_size)
 	int	i;
 
 	i = 0;
-	while(i <= buf_size)
+	while(i < buf_size)
 	{
 		if (str[i] == '\n')
 			return (i + 1);
@@ -87,9 +87,9 @@ char	*get_next_line(int fd)
 	static size_t	str_to_read_copied;
 	static size_t	str_to_read_buf;
 	static int		buf_size;
+	static int		count_read = 1;
 
 
-	
 	if (fd == -1)
 		return (NULL);
 	buf_size = BUFFER_SIZE;
@@ -99,40 +99,58 @@ char	*get_next_line(int fd)
 		if (read_result == -1)
 			return (NULL);
 		p_to_buf = buf;
-	}
 
-	if (!is_new_line(p_to_buf, BUFFER_SIZE))
-	{
-		str_to_read_copied = BUFFER_SIZE - buf_size;
-		str_to_read_buf = buf_size + BUFFER_SIZE;
-		str_to_return = ft_realloc(p_to_buf, buf_size + BUFFER_SIZE, str_to_return_len, str_to_return);
-		buf_size = BUFFER_SIZE;
-		// printf("str_to_return - %s\n", str_to_return);
-		read_result = read(fd, buf, BUFFER_SIZE);
-		if (read_result == -1)
-			return (NULL);
-		p_to_buf = buf;
 	}
-	else
+	if (buf_size == BUFFER_SIZE)
 	{
-		str_to_read_buf = BUFFER_SIZE * sizeof(char);
+		str_to_read_buf = count_read * BUFFER_SIZE * sizeof(char);
 		str_to_return = malloc(str_to_read_buf);
 		if (str_to_return == NULL)
 			return (NULL);
+		count_read++;
 	}
+
+	// if (!is_new_line(p_to_buf, BUFFER_SIZE))
+	// {
+	// 	str_to_read_copied = BUFFER_SIZE - buf_size;
+	// 	str_to_read_buf = buf_size + BUFFER_SIZE;
+	// 	str_to_return = ft_realloc(p_to_buf, buf_size + BUFFER_SIZE, str_to_return_len, str_to_return);
+	// 	buf_size = BUFFER_SIZE;
+	// 	// printf("str_to_return - %s\n", str_to_return);
+	// 	read_result = read(fd, buf, BUFFER_SIZE);
+	// 	if (read_result == -1)
+	// 		return (NULL);
+	// 	p_to_buf = buf;
+	// }
+	// else
+	// {
+	// 	str_to_read_buf = BUFFER_SIZE * sizeof(char);
+	// 	str_to_return = malloc(str_to_read_buf);
+	// 	if (str_to_return == NULL)
+	// 		return (NULL);
+	// }
 
 	if (is_new_line(p_to_buf, buf_size))
 	{
+		printf("\np_to_buf - %s\n", p_to_buf);
 		ft_memcpy(str_to_return, p_to_buf, is_new_line(p_to_buf, BUFFER_SIZE));
 		str_to_return_len = is_new_line(p_to_buf, BUFFER_SIZE);
 		buf_size = buf_size - str_to_return_len;
 		p_to_buf = p_to_buf + str_to_return_len;
+
+
 		return (str_to_return);
 	}
 	else
 	{
-		str_to_return_len = ft_str_len(str_to_return, BUFFER_SIZE - str_to_read_copied);
-		ft_memcpy(str_to_return + str_to_return_len, buf, BUFFER_SIZE);
+		str_to_return_len = buf_size;
+		count_read++;
+		printf("\np_to_buf - %s\n", p_to_buf);
+		// str_to_return_len = ft_str_len(str_to_return, BUFFER_SIZE - str_to_read_copied);
+		// ft_memcpy(str_to_return + str_to_return_len, buf, BUFFER_SIZE);
+		str_to_return = ft_realloc(p_to_buf, count_read * BUFFER_SIZE, str_to_return_len, str_to_return);
+		if (str_to_return == NULL)
+			return (NULL);
 		printf("str_to_return - %s\n", str_to_return);
 		get_next_line(fd);
 	}
@@ -148,10 +166,10 @@ int	main(int argc, char *argv[])
 	name_file = argv[argc - 1];
 	fd = open(name_file, O_RDONLY);
 	line_to_read = get_next_line(fd);
-	printf("stirng from file - %s\n", line_to_read);
-	line_to_read = get_next_line(fd);
-	printf("stirng from file - %s\n", line_to_read);
-	line_to_read = get_next_line(fd);
-	printf("stirng from file - %s\n", line_to_read);
+	//printf("stirng from file - %s\n", line_to_read);
+	//line_to_read = get_next_line(fd);
+	//printf("stirng from file - %s\n", line_to_read);
+	//line_to_read = get_next_line(fd);
+	//printf("stirng from file - %s\n", line_to_read);
 	return (0);
 }
