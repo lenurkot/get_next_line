@@ -6,7 +6,7 @@
 /*   By: ekotova <ekotova@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/26 16:38:57 by ekotova           #+#    #+#             */
-/*   Updated: 2025/11/05 18:32:45 by ekotova          ###   ########.fr       */
+/*   Updated: 2025/11/05 20:29:10 by ekotova          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,17 @@ device is unspecified. */
 /* Read line: correct behavior
 NULL: there is nothing else to read, or an error
 occurred */
+int ft_str_len(char *line)
+{
+	int	i;
 
+	while(line[i] != '\0')
+	{
+		// printf("%c - %d\n", line[i], line[i]);
+		i++;
+	}
+	return i;
+}
 char print_sym_code(char *str, int len)
 {
 	int i = 0;
@@ -85,26 +95,40 @@ static char	*ft_realloc(char *str, size_t to_copy, size_t new_len)
  * @param buf_size always equal BUFFER size
  * @return len of the new line if i found '\n' or 0 if i didn't. +1 for '\n'
  */
-static int len_of_new_line(char *str, size_t buf_size)
+void new_line(char *line, char *buf, size_t buf_size)
 {
 	int	i;
 
 	i = 0;
 	while(i < buf_size)
 	{
-		if (str[i] == '\n')
-			return (i + 1);
+		if (buf[i] == '\n')
+		{
+			i++;
+			ft_memcpy(line, buf, i);
+			line[i] = '\0';
+			buf_size -= i;
+			ft_memcpy(buf, buf + i, buf_size);
+			return ;
+		}
 		i++;
 	}
-	return (0);
+	ft_memcpy(line, buf, buf_size);
+    line[buf_size] = '\0';
+    buf_size = 0;
 }
 char	*get_next_line(int fd)
 {
-	static int		read_result;
-	static char		*buf;
-	static char		*line;
-	static size_t	line_read = 0;
-	static char		*tmp;
+	// static int	 buf_size;
+	// static char		*buf;
+	// static char		*line;
+	// static size_t	line_read = 0;
+	// static char		*tmp;
+	static size_t		buf_size;
+	static char	*buf;
+	static char	*line;
+	size_t	line_read = 0;
+	char	*tmp;
 
 	if (fd == -1)
 		return (NULL);
@@ -117,50 +141,54 @@ char	*get_next_line(int fd)
 		line = malloc(BUFFER_SIZE * sizeof(char));
 		if (buf == NULL)
 			return (NULL);
+		buf_size = read(fd, buf, BUFFER_SIZE);
+		if  (buf_size <= 0)
+			return (NULL);
 	}
-
-	read_result = read(fd, buf, BUFFER_SIZE);
-	if (read_result <= 0)
-		return (NULL);
 
 	// 1 case
-	while (1)
-	{
-		if (read_result > 0)
-		{
-			ft_memcpy(line + line_read, buf, read_result);
-			line_read += read_result;
-			line[line_read] = '\0';
-			read_result -= read_result;
-		}
-		else
-		{
-			tmp = ft_realloc(line, line_read, line_read + BUFFER_SIZE);
-			if (tmp == NULL)
-				return (NULL);
-			line = tmp;
-			line[line_read] = '\0';
-			if (get_next_line(fd) == NULL)
-				break;
-		}
-	}
-
-	// 2 case
 	// while (1)
 	// {
-	// 	if (read_result != 0)
+	// 	if  (buf_size > 0)
 	// 	{
-	// 		ft_memcpy(line, buf, read_result);
-	// 		line[read_result] = '\0';
-	// 		line_read += read_result;
-	// 		if (line_read == read_result)
-	// 			break;
-	// 		get_next_line(fd);
+	// 		ft_memcpy(line + line_read, buf, buf_size);
+	// 		line_read += buf_size;
+	// 		line[line_read] = '\0';
+	// 		buf_size -= buf_size;
 	// 	}
+	// 	else
+	// 	{
+	// 		tmp = ft_realloc(line, line_read, line_read * BUFFER_SIZE);
+	// 		if (tmp == NULL)
+	// 			return (NULL);
+	// 		line = tmp;
+	// 		line[line_read] = '\0';
+	// 		if (get_next_line(fd) == NULL)
+	// 			break;
+	// 	}
+	// }
 
+	// 2 case
+	line[buf_size] = '\0';
+	while  (buf_size != 0)
+	{
+		// printf("buf_size - %d buf - %s", buf_size, buf);
+		new_line(line + line_read, buf, buf_size);
+		line_read += ft_str_len(line);
+		// buf += line_read;
+		// printf("buf_size AFTER - %d buf - %s", buf_size, buf);
+		if (line_read == 0)
+        	break;
+		return (line);
+		// ft_memcpy(line, buf, buf_size);
+		// line[buf_size] = '\0';
+		// line_read += buf_size;
+		// if (line_read == buf_size)
+		// 	break;
+		// get_next_line(fd);
+	}
 	// }
 	// free();
-	line[line_read] = '\0';
 	return (line);
 }
 int	main(int argc, char *argv[])
@@ -172,11 +200,31 @@ int	main(int argc, char *argv[])
 	name_file = argv[argc - 1];
 	fd = open(name_file, O_RDONLY);
 	line_to_read = get_next_line(fd);
-	printf("\nFIRST\n - %s\n", line_to_read);
-	free(line_to_read);
+	// printf("\nFIRST\n%s*****\n", line_to_read);
 	line_to_read = get_next_line(fd);
-	printf("\nSECOND\n - %s\n", line_to_read);
-	free(line_to_read);
+	// printf("\nSECOND\n%s*****\n", line_to_read);
+	line_to_read = get_next_line(fd);
+	// printf("\nTHIRD\n%s*****\n", line_to_read);
+	line_to_read = get_next_line(fd);
+	// printf("\nFOURTH\n%s*****\n", line_to_read);
+	line_to_read = get_next_line(fd);
+	// printf("\nFIFTH\n %s\n", line_to_read);
+	line_to_read = get_next_line(fd);
+	// printf("\n6th\n%s\n", line_to_read);
+	line_to_read = get_next_line(fd);
+	// printf("\n7th\n%s\n", line_to_read);
+	line_to_read = get_next_line(fd);
+	// printf("\n8thn %s\n", line_to_read);
+	line_to_read = get_next_line(fd);
+	// printf("\n9th\n%s\n", line_to_read);
+	line_to_read = get_next_line(fd);
+	// printf("\n10th\n%s\n", line_to_read);
+	line_to_read = get_next_line(fd);
+	print_sym_code(line_to_read, 250);
+	//printf("\n11th\n %s\n", line_to_read);
+	// line_to_read = get_next_line(fd);
+	// printf("\n12th\n%s\n", line_to_read);
+	// free(line_to_read);
 	// line_to_read = get_next_line(fd);
 	// printf("stirng from file - %s\n", line_to_read);
 	return (0);
