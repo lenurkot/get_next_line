@@ -6,7 +6,7 @@
 /*   By: ekotova <ekotova@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/26 16:38:57 by ekotova           #+#    #+#             */
-/*   Updated: 2025/11/14 13:55:45 by ekotova          ###   ########.fr       */
+/*   Updated: 2025/11/14 18:53:37 by ekotova          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,26 +25,7 @@ device is unspecified. */
 /* Read line: correct behavior
 NULL: there is nothing else to read, or an error
 occurred */
-// int ft_str_len(char *line)
-// {
-// 	int	i;
 
-// 	while(line[i] != '\0')
-// 	{
-// 		// printf("%c - %d\n", line[i], line[i]);
-// 		i++;
-// 	}
-// 	return i;
-// }
-// void print_sym_code(char *str, int len)
-// {
-// 	int i = 0;
-// 	while(i < len)
-// 	{
-// 		printf("%d) %d - %c\n", i + 1, str[i], str[i]);
-// 		i++;
-// 	}
-// }
 /**
  * @param dest str to copy
  * @param src str from which copy
@@ -88,35 +69,6 @@ static char	*ft_realloc(char *str, size_t to_copy, size_t new_len)
 	return (new_str);
 }
 
-/**
- * @brief go through the string and look for '\n' and return eather potential len or 0
- *
- * @param str string
- * @param buf_size always equal BUFFER size
- * @return len of the new line if i found '\n' or 0 if i didn't. +1 for '\n'
- */
-// void new_line(char *line, char *buf, size_t buf_size)
-// {
-// 	int	i;
-
-// 	i = 0;
-// 	while(i < buf_size)
-// 	{
-// 		if (buf[i] == '\n')
-// 		{
-// 			i++;
-// 			ft_memcpy(line, buf, i);
-// 			line[i] = '\0';
-// 			buf_size -= i;
-// 			ft_memcpy(buf, buf + i, buf_size);
-// 			return ;
-// 		}
-// 		i++;
-// 	}
-// 	ft_memcpy(line, buf, buf_size);
-//     line[buf_size] = '\0';
-//     buf_size = 0;
-// }
 char	*get_next_line(int fd)
 {
 	static char		buf[BUFFER_SIZE];
@@ -126,21 +78,18 @@ char	*get_next_line(int fd)
 	static int		line_capacity = 0;
 	static int		line_len = 0;
 	char 			*tmp;
+	static int      current_fd;
 
 	if (fd < 0)
 		return (NULL);
-	if(buf_pos == buf_len)
-	{
-		buf_len = read(fd, buf, BUFFER_SIZE);
-		if (buf_len == 0)
-		{
-			if (line != NULL)
-				return (line);
-			return (NULL);
-		}
-		buf_pos = 0;
-	}
 
+    if (current_fd != fd)
+    {
+        free(line);
+        line = NULL;
+        line_len = line_capacity = buf_pos = buf_len = 0;
+        current_fd = fd;
+    }
 	if (line == NULL)
 	{
 		line_capacity = 100;
@@ -151,22 +100,28 @@ char	*get_next_line(int fd)
 
 	while (1)
 	{
-		if (buf_len == 0)
-			break ;
+		if(buf_pos == buf_len)
+		{
+			buf_pos = 0;
+			buf_len = read(fd, buf, BUFFER_SIZE);
+			if (buf_len <= 0)
+			{
+				buf_pos = 0;
+				break ;
+			}
+		}
 		else if (line_len + 2 > line_capacity)
 		{
 			line_capacity = line_capacity * 2;
 			tmp = ft_realloc(line, line_len, line_capacity);
-			if (tmp == NULL) // looks like everything is ok here?
+			if (tmp == NULL)
+			{
+				free(line);
+				line = NULL;
+				line_len = 0;
 				return (NULL);
+			}
 			line = tmp;
-		}
-		else if (buf_pos == buf_len)
-		{
-			buf_len = read(fd, buf, BUFFER_SIZE);
-			if (buf_len == 0)
-				break;
-			buf_pos = 0;
 		}
 		else
 		{
@@ -183,18 +138,24 @@ char	*get_next_line(int fd)
 		line_len = 0;
 		return (line);
 	}
+	free(line);
+	line = NULL;
+	line_len = 0;
 	return (NULL);
 }
 // int	main(int argc, char *argv[])
 // {
 // 	char	*name_file;
-// 	char	*line_to_read;
+// 	char	*line_to_read = "";
 // 	int		fd;
 // 	int 	i = 1;
 
 // 	name_file = argv[argc - 1];
-// 	// fd = open(name_file, O_RDONLY);
-// 	fd = 0;
+// 	fd = open(name_file, O_RDONLY);
+// 	// close(fd);
+// 	// printf("fd - %d\n", fd);
+// 	// fd = 0;
+// 	// printf("fd - %d\n", fd);
 // 	while (line_to_read != NULL)
 // 	{
 // 		line_to_read = get_next_line(fd);
