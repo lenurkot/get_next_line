@@ -69,79 +69,109 @@ static char	*ft_realloc(char *str, size_t to_copy, size_t new_len)
 	return (new_str);
 }
 
+int	is_new_line(char *buf, int buf_len, int *is_line)
+{
+	int pos;
+
+	pos = 0;
+	// printf("buf - %s\n", buf);
+	while(pos < buf_len)
+	{
+		if (buf[pos] == '\n')
+		{
+			*is_line = 1;
+			// if (pos == 0)
+			// 	return (pos + 1);
+			return (pos);
+		}
+		pos++;
+	}
+	*is_line = 0;
+	return (pos);
+}
+static void reset_state(int *buf_pos, int *buf_len, int *is_line)
+{
+	*buf_pos = 0;
+    *buf_len = 0;
+    *is_line = 0;
+}
 char	*get_next_line(int fd)
 {
 	static char		buf[BUFFER_SIZE];
 	static int		buf_pos = 0;
 	static int		buf_len = 0;
-	static char		*line;
-	static int		line_capacity = 0;
-	static int		line_len = 0;
+	char			*line;
+	int				line_capacity;
+	int		line_len = 0;
 	char 			*tmp;
 	static int      current_fd;
+	static int 		is_line = 0;
 
 	if (fd < 0)
 		return (NULL);
 
-    if (current_fd != fd)
-    {
-        free(line);
-        line = NULL;
-        line_len = line_capacity = buf_pos = buf_len = 0;
-        current_fd = fd;
-    }
-	if (line == NULL)
+	if (current_fd != fd)
 	{
-		line_capacity = 100;
-		line = malloc(100 + sizeof(char));
-		if (line == NULL)
-			return (NULL);
+		reset_state(&buf_pos, &buf_len, &is_line);
+		current_fd = fd;
 	}
-
-	while (1)
+	line_capacity = BUFFER_SIZE + 1;
+	line = malloc(line_capacity * sizeof(char));
+	if (line == NULL)
+		return (NULL);
+	while(1)
 	{
 		if(buf_pos == buf_len)
 		{
 			buf_pos = 0;
 			buf_len = read(fd, buf, BUFFER_SIZE);
-			if (buf_len <= 0)
+			if (buf_len < 0)
 			{
-				buf_pos = 0;
-				break ;
-			}
-		}
-		else if (line_len + 2 > line_capacity)
-		{
-			line_capacity = line_capacity * 2;
-			tmp = ft_realloc(line, line_len, line_capacity);
-			if (tmp == NULL)
-			{
+				reset_state(&buf_pos, &buf_len, &is_line);
 				free(line);
-				line = NULL;
-				line_len = 0;
 				return (NULL);
 			}
-			line = tmp;
+			if (buf_len == 0)
+			{
+				if (line_len > 0)
+				{
+					line[line_len] = '\0';
+					return (line);
+				}
+				free(line);
+				return (NULL);
+			}
+		}
+		buf_pos = is_new_line(buf, buf_len, &is_line);
+		if (!is_line)
+		{
+			while (line_len + buf_len + BUFFER_SIZE + 2 > line_capacity)
+			{
+				line_capacity = line_capacity * 2;
+				tmp = ft_realloc(line, line_len, line_capacity);
+				if (tmp == NULL)
+				{
+					free(line);
+					return (NULL);
+				}
+				line = tmp;
+			}
+			ft_memcpy(line + line_len, buf, buf_pos);
+			line_len += buf_len;
+			buf_pos = buf_len;
 		}
 		else
 		{
-			line[line_len] = buf[buf_pos];
-			line_len++;
+			ft_memcpy(line + line_len, buf, buf_pos + 1);
 			buf_pos++;
-			if (line[line_len - 1] == '\n')
-				break ;
+			line_len += buf_pos;
+			buf_len -= buf_pos;
+			ft_memcpy(buf, buf + buf_pos, buf_len);
+			buf_pos = 0;
+			line[line_len] = '\0';
+			return (line);
 		}
 	}
-	if (line_len > 0)
-	{
-		line[line_len] = '\0';
-		line_len = 0;
-		return (line);
-	}
-	free(line);
-	line = NULL;
-	line_len = 0;
-	return (NULL);
 }
 // int	main(int argc, char *argv[])
 // {
@@ -152,14 +182,12 @@ char	*get_next_line(int fd)
 
 // 	name_file = argv[argc - 1];
 // 	fd = open(name_file, O_RDONLY);
-// 	// close(fd);
-// 	// printf("fd - %d\n", fd);
 // 	// fd = 0;
-// 	// printf("fd - %d\n", fd);
 // 	while (line_to_read != NULL)
 // 	{
 // 		line_to_read = get_next_line(fd);
 // 		printf("%d) %s\n", i, line_to_read);
+// 		free(line_to_read);
 // 		i++;
 // 	}
 // 	return (0);
