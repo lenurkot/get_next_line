@@ -6,12 +6,13 @@
 /*   By: ekotova <ekotova@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/26 16:38:57 by ekotova           #+#    #+#             */
-/*   Updated: 2025/11/18 15:48:26 by ekotova          ###   ########.fr       */
+/*   Updated: 2025/11/18 16:49:19 by ekotova          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 #include <stdio.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 static int	fill_without_nl(t_buf_stat *st)
