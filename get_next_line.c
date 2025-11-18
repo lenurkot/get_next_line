@@ -6,173 +6,102 @@
 /*   By: ekotova <ekotova@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/26 16:38:57 by ekotova           #+#    #+#             */
-/*   Updated: 2025/11/14 18:53:37 by ekotova          ###   ########.fr       */
+/*   Updated: 2025/11/18 15:48:26 by ekotova          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
-#include <fcntl.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
-/* The read() function shall attempt
-to read nbyte bytes from the file associated
-with the open file descriptor, fildes, into the
-buffer pointed to by buf. The behavior of multiple
-concurrent reads on the same pipe, FIFO, or terminal
-device is unspecified. */
-/* Read line: correct behavior
-NULL: there is nothing else to read, or an error
-occurred */
-
-/**
- * @param dest str to copy
- * @param src str from which copy
- * @param n copy n-bytes, but no more the len str
- * @return void*
- */
-static void	*ft_memcpy(void *dest, const void *src, size_t n)
+static int	fill_without_nl(t_buf_stat *st)
 {
-	const unsigned char	*p_src;
-	unsigned char		*p_dest;
-	p_src = src;
-	p_dest = dest;
-	while (n > 0)
+	if (!ensure_line_capacity(st, st->buf_len))
+		return (0);
+	ft_memcpy(st->line + st->line_len, st->buf, st->buf_pos);
+	st->line_len += st->buf_len;
+	return (1);
+}
+
+static char	*fill_with_nl(t_buf_stat *st)
+{
+	if (!ensure_line_capacity(st, st->buf_len))
+		return (0);
+	ft_memcpy(st->line + st->line_len, st->buf, st->buf_pos + 1);
+	st->buf_pos++;
+	st->line_len += st->buf_pos;
+	st->buf_len -= st->buf_pos;
+	ft_memcpy(st->buf, st->buf + st->buf_pos, st->buf_len);
+	st->buf_pos = 0;
+	st->line[st->line_len] = '\0';
+	return (st->line);
+}
+
+static int	ft_read(int fd,	t_buf_stat *st)
+{
+	st->buf_pos = 0;
+	st->buf_len = read(fd, st->buf, BUFFER_SIZE);
+	if (st->buf_len < 0)
 	{
-		*p_dest = *p_src;
-		p_dest++;
-		p_src++;
-		n--;
+		reset_state(st);
+		free(st->line);
+		st->line = NULL;
+		return (0);
 	}
-	return (dest);
-}
-/**
- * @brief Make new ptr. Copy everything from str to new_str,
- * but not more than str_len. Cuz in opposite case ft_memcpy has undefined behavior.
- * free str;
- *
- * @param str string with some data;
- * @param str_len len of the str.
- * @param new_len len of tail + space for new buf;
- * @return * char* ptr to new str with another size.
- */
-static char	*ft_realloc(char *str, size_t to_copy, size_t new_len)
-{
-	char	*new_str;
-
-	new_str = malloc(new_len * sizeof(char));
-	if (new_str == NULL)
-		return (NULL);
-	ft_memcpy(new_str, str, to_copy);
-	free(str);
-	return (new_str);
-}
-
-int	is_new_line(char *buf, int buf_len, int *is_line)
-{
-	int pos;
-
-	pos = 0;
-	// printf("buf - %s\n", buf);
-	while(pos < buf_len)
+	if (st->buf_len == 0)
 	{
-		if (buf[pos] == '\n')
+		if (st->line_len > 0)
 		{
-			*is_line = 1;
-			// if (pos == 0)
-			// 	return (pos + 1);
-			return (pos);
+			(st->line)[st->line_len] = '\0';
+			return (0);
 		}
-		pos++;
+		free(st->line);
+		st->line = NULL;
+		return (0);
 	}
-	*is_line = 0;
-	return (pos);
+	return (1);
 }
-static void reset_state(int *buf_pos, int *buf_len, int *is_line)
+
+static char	*build_line(int fd, t_buf_stat *st)
 {
-	*buf_pos = 0;
-    *buf_len = 0;
-    *is_line = 0;
+	while (1)
+	{
+		if (st->buf_pos == st->buf_len)
+		{
+			if (!ft_read(fd, st))
+				return (st->line);
+		}
+		st->buf_pos = is_new_line(st->buf, st->buf_len, &st->is_line);
+		if (!st->is_line)
+		{
+			if (!fill_without_nl(st))
+				return (NULL);
+			st->buf_pos = st->buf_len;
+		}
+		else
+			return (fill_with_nl(st));
+	}
 }
+
 char	*get_next_line(int fd)
 {
-	static char		buf[BUFFER_SIZE];
-	static int		buf_pos = 0;
-	static int		buf_len = 0;
-	char			*line;
-	int				line_capacity;
-	int		line_len = 0;
-	char 			*tmp;
-	static int      current_fd;
-	static int 		is_line = 0;
+	static t_buf_stat	st;
 
 	if (fd < 0)
 		return (NULL);
-
-	if (current_fd != fd)
+	if (st.current_fd != fd)
 	{
-		reset_state(&buf_pos, &buf_len, &is_line);
-		current_fd = fd;
+		reset_state(&st);
+		st.current_fd = fd;
 	}
-	line_capacity = BUFFER_SIZE + 1;
-	line = malloc(line_capacity * sizeof(char));
-	if (line == NULL)
+	st.line_capacity = BUFFER_SIZE + 1;
+	st.line = malloc(st.line_capacity * sizeof(char));
+	if (st.line == NULL)
 		return (NULL);
-	while(1)
-	{
-		if(buf_pos == buf_len)
-		{
-			buf_pos = 0;
-			buf_len = read(fd, buf, BUFFER_SIZE);
-			if (buf_len < 0)
-			{
-				reset_state(&buf_pos, &buf_len, &is_line);
-				free(line);
-				return (NULL);
-			}
-			if (buf_len == 0)
-			{
-				if (line_len > 0)
-				{
-					line[line_len] = '\0';
-					return (line);
-				}
-				free(line);
-				return (NULL);
-			}
-		}
-		buf_pos = is_new_line(buf, buf_len, &is_line);
-		if (!is_line)
-		{
-			while (line_len + buf_len + BUFFER_SIZE + 2 > line_capacity)
-			{
-				line_capacity = line_capacity * 2;
-				tmp = ft_realloc(line, line_len, line_capacity);
-				if (tmp == NULL)
-				{
-					free(line);
-					return (NULL);
-				}
-				line = tmp;
-			}
-			ft_memcpy(line + line_len, buf, buf_pos);
-			line_len += buf_len;
-			buf_pos = buf_len;
-		}
-		else
-		{
-			ft_memcpy(line + line_len, buf, buf_pos + 1);
-			buf_pos++;
-			line_len += buf_pos;
-			buf_len -= buf_pos;
-			ft_memcpy(buf, buf + buf_pos, buf_len);
-			buf_pos = 0;
-			line[line_len] = '\0';
-			return (line);
-		}
-	}
+	st.line_len = 0;
+	return (build_line(fd, &st));
 }
+
 // int	main(int argc, char *argv[])
 // {
 // 	char	*name_file;
